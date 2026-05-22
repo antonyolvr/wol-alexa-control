@@ -39,15 +39,15 @@ async function handleDiscovery(request, res) {
     const messageId = request.directive.header.messageId;
     const devices = await redis.get('wol_devices') || [];
 
+    const formatMac = (rawMac) => {
+      const clean = rawMac.replace(/[^a-fA-F0-9]/g, '').toLowerCase();
+      if (clean.length !== 12) return clean;
+      return clean.match(/.{1,2}/g).join(':');
+    };
+
     const endpoints = devices.map(config => {
-
       const cleanId = config.mac.replace(/[: -]/g, '').toLowerCase();
-
-      const formatMac = (rawMac) => {
-        const clean = rawMac.replace(/[^a-fA-F0-9]/g, '').toLowerCase();
-        if (clean.length !== 12) return clean; 
-        return clean.match(/.{1,2}/g).join(':');
-      };
+      const formattedMac = formatMac(config.mac);
 
       return {
         endpointId: "endpoint-" + cleanId,
@@ -80,9 +80,9 @@ async function handleDiscovery(request, res) {
             type: "AlexaInterface",
             interface: "Alexa.WakeOnLANController",
             version: "3",
-            properties:{},
+            properties: {},
             configuration: {
-              MACAddresses: [formatMac(config.mac)]
+              MACAddresses: [formattedMac]
             }
           },
           {
@@ -94,7 +94,8 @@ async function handleDiscovery(request, res) {
       };
     });
 
-    console.log("Discovery response:", JSON.stringify({ endpoints }, null, 2));
+    console.log("Discovery response endpoints:", JSON.stringify(endpoints, null, 2));
+
     return res.status(200).json({
       event: {
         header: {
