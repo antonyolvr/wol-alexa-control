@@ -80,6 +80,7 @@ async function handleDiscovery(request, res) {
             type: "AlexaInterface",
             interface: "Alexa.WakeOnLANController",
             version: "3",
+            properties:{},
             configuration: {
               MACAddresses: [formatMac(config.mac)]
             }
@@ -123,6 +124,7 @@ async function handlePowerControl(request, res) {
 
   // LIGAR - DeferredResponse para a Alexa mandar o pacote WoL pela Echo
   if (name === 'TurnOn') {
+    console.log("Discovery response:", JSON.stringify({ endpoints }, null, 2));
     return res.status(200).json({
       event: {
         header: {
