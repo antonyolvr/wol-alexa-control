@@ -122,9 +122,10 @@ async function handlePowerControl(request, res) {
 
   console.log(`Power Control: ${name} for ${endpointId}`);
 
+  console.log("Discovery response:", JSON.stringify({ endpoints }, null, 2));
+  
   // LIGAR - DeferredResponse para a Alexa mandar o pacote WoL pela Echo
   if (name === 'TurnOn') {
-    console.log("Discovery response:", JSON.stringify({ endpoints }, null, 2));
     return res.status(200).json({
       event: {
         header: {
