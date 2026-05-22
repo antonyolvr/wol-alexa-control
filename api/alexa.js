@@ -116,13 +116,31 @@ async function handlePowerControl(request, res) {
   const { header, endpoint } = request.directive;
   const correlationToken = header.correlationToken;
   const messageId = header.messageId;
-  const endpointId = endpoint.endpointId; 
-  const name = header.name; 
+  const endpointId = endpoint.endpointId;
+  const name = header.name;
 
   console.log(`Power Control: ${name} for ${endpointId}`);
 
-  if (name === 'TurnOff') {
+  // LIGAR - DeferredResponse para a Alexa mandar o pacote WoL pela Echo
+  if (name === 'TurnOn') {
+    return res.status(200).json({
+      event: {
+        header: {
+          namespace: "Alexa",
+          name: "DeferredResponse",
+          messageId: messageId + "-R",
+          correlationToken: correlationToken,
+          payloadVersion: "3"
+        },
+        payload: {
+          estimatedDeferralInSeconds: 7
+        }
+      }
+    });
+  }
 
+  // DESLIGAR - manda comando pelo ntfy como antes
+  if (name === 'TurnOff') {
     const cleanId = endpointId.replace('endpoint-', '');
     const adminPassword = process.env.ADMIN_PASSWORD || "";
 
@@ -134,7 +152,6 @@ async function handlePowerControl(request, res) {
     const topic = `wol_${secretHash}`;
 
     try {
-
       await fetch(`https://ntfy.sh/${topic}`, {
         method: 'POST',
         body: 'off'
@@ -171,9 +188,7 @@ async function handlePowerControl(request, res) {
         {
           namespace: "Alexa.EndpointHealth",
           name: "connectivity",
-          value: {
-            value: "OK"
-          },
+          value: { value: "OK" },
           timeOfSample: new Date().toISOString(),
           uncertaintyInMilliseconds: 0
         }
