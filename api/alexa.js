@@ -39,15 +39,15 @@ async function handleDiscovery(request, res) {
     const messageId = request.directive.header.messageId;
     const devices = await redis.get('wol_devices') || [];
 
-    const formatMac = (rawMac) => {
-      const clean = rawMac.replace(/[^a-fA-F0-9]/g, '').toLowerCase();
-      if (clean.length !== 12) return clean;
-      return clean.match(/.{1,2}/g).join(':');
-    };
-
     const endpoints = devices.map(config => {
+
       const cleanId = config.mac.replace(/[: -]/g, '').toLowerCase();
-      const formattedMac = formatMac(config.mac);
+
+      const formatMac = (rawMac) => {
+        const clean = rawMac.replace(/[^a-fA-F0-9]/g, '').toLowerCase();
+        if (clean.length !== 12) return clean; 
+        return clean.match(/.{1,2}/g).join(':');
+      };
 
       return {
         endpointId: "endpoint-" + cleanId,
@@ -80,9 +80,8 @@ async function handleDiscovery(request, res) {
             type: "AlexaInterface",
             interface: "Alexa.WakeOnLANController",
             version: "3",
-            properties: {},
             configuration: {
-              MACAddresses: [formattedMac]
+              MACAddresses: [formatMac(config.mac)]
             }
           },
           {
@@ -93,8 +92,6 @@ async function handleDiscovery(request, res) {
         ]
       };
     });
-
-    console.log("Discovery response endpoints:", JSON.stringify(endpoints, null, 2));
 
     return res.status(200).json({
       event: {
@@ -119,31 +116,13 @@ async function handlePowerControl(request, res) {
   const { header, endpoint } = request.directive;
   const correlationToken = header.correlationToken;
   const messageId = header.messageId;
-  const endpointId = endpoint.endpointId;
-  const name = header.name;
+  const endpointId = endpoint.endpointId; 
+  const name = header.name; 
 
   console.log(`Power Control: ${name} for ${endpointId}`);
 
-  // LIGAR - DeferredResponse para a Alexa mandar o pacote WoL pela Echo
-  if (name === 'TurnOn') {
-    return res.status(200).json({
-      event: {
-        header: {
-          namespace: "Alexa",
-          name: "DeferredResponse",
-          messageId: messageId + "-R",
-          correlationToken: correlationToken,
-          payloadVersion: "3"
-        },
-        payload: {
-          estimatedDeferralInSeconds: 7
-        }
-      }
-    });
-  }
-
-  // DESLIGAR - manda comando pelo ntfy como antes
   if (name === 'TurnOff') {
+
     const cleanId = endpointId.replace('endpoint-', '');
     const adminPassword = process.env.ADMIN_PASSWORD || "";
 
@@ -155,6 +134,7 @@ async function handlePowerControl(request, res) {
     const topic = `wol_${secretHash}`;
 
     try {
+
       await fetch(`https://ntfy.sh/${topic}`, {
         method: 'POST',
         body: 'off'
@@ -191,7 +171,9 @@ async function handlePowerControl(request, res) {
         {
           namespace: "Alexa.EndpointHealth",
           name: "connectivity",
-          value: { value: "OK" },
+          value: {
+            value: "OK"
+          },
           timeOfSample: new Date().toISOString(),
           uncertaintyInMilliseconds: 0
         }
