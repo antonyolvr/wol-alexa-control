@@ -4,7 +4,7 @@ export default async function handler(req, res) {
 
   const params = new URLSearchParams({
     client_id: process.env.LWA_CLIENT_ID,
-    scope: scope || 'profile',
+    scope: 'profile:user_id',
     response_type: 'code',
     redirect_uri: redirect_uri,
     state: state || ''
